@@ -1,0 +1,31 @@
+{
+  "providerId": "Microsoft.Tools.ServiceModel.Svcutil",
+  "version": "2.1.0",
+  "options": {
+    "inputs": [
+      "nfse.wsdl"
+    ],
+    "namespaceMappings": [
+        "*, XmlApiNfseGissInfra.NfseWSDL"
+    ],
+    "outputFile": "Reference.cs",
+    "references": [
+      "Microsoft.Extensions.Configuration, {Microsoft.Extensions.Configuration, 9.0.1}",
+      "Microsoft.Extensions.Configuration.Abstractions, {Microsoft.Extensions.Configuration.Abstractions, 9.0.1}",
+      "Microsoft.Extensions.Configuration.Binder, {Microsoft.Extensions.Configuration.Binder, 9.0.1}",
+      "Microsoft.Extensions.DependencyInjection, {Microsoft.Extensions.DependencyInjection, 9.0.1}",
+      "Microsoft.Extensions.DependencyInjection.Abstractions, {Microsoft.Extensions.DependencyInjection.Abstractions, 9.0.1}",
+      "Microsoft.Extensions.Diagnostics, {Microsoft.Extensions.Diagnostics, 9.0.1}",
+      "Microsoft.Extensions.Diagnostics.Abstractions, {Microsoft.Extensions.Diagnostics.Abstractions, 9.0.1}",
+      "Microsoft.Extensions.Http, {Microsoft.Extensions.Http, 9.0.1}",
+      "Microsoft.Extensions.Logging, {Microsoft.Extensions.Logging, 9.0.1}",
+      "Microsoft.Extensions.Logging.Abstractions, {Microsoft.Extensions.Logging.Abstractions, 9.0.1}",
+      "Microsoft.Extensions.Options, {Microsoft.Extensions.Options, 9.0.1}",
+      "Microsoft.Extensions.Options.ConfigurationExtensions, {Microsoft.Extensions.Options.ConfigurationExtensions, 9.0.1}",
+      "Microsoft.Extensions.Primitives, {Microsoft.Extensions.Primitives, 9.0.1}",
+      "System.Diagnostics.DiagnosticSource, {System.Diagnostics.DiagnosticSource, 9.0.1}"
+    ],
+    "targetFramework": "net8.0",
+    "typeReuseMode": "All"
+  }
+}
