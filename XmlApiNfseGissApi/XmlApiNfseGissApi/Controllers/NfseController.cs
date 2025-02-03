@@ -16,30 +16,33 @@ namespace XmlApiNfseGiss.Controllers
         private readonly INfseHttpService _nfseHttpService;
         private readonly INfseService _nfseService; // Serviço que gera o XML
         private readonly nfseClient _nfseClient;
-        public NfseController(INfseHttpService nfseHttpService, INfseService nfseService)
+        public NfseController(INfseHttpService nfseHttpService, 
+                              INfseService nfseService,
+                              ICertificateService certificateService,
+                              IConfiguration configuration)
         {
             _nfseHttpService = nfseHttpService;
             _nfseService = nfseService;
 
-            var binding = new BasicHttpBinding(BasicHttpSecurityMode.Transport);
-            binding.Security.Transport.ClientCredentialType = HttpClientCredentialType.Certificate;
 
-            //var endpoint = new EndpointAddress("https://v2-ws-homologacao.giss.com.br/service-ws/nf/nfse-ws");
-            var endpoint = new EndpointAddress("https://ws-santos.giss.com.br/service-ws/nf/nfse-ws");
+            var endpointUrl = configuration["NfseSettings:Endpoint"];
+            var binding = new BasicHttpBinding(BasicHttpSecurityMode.Transport)
+            {
+                Security =
+            {
+                Transport =
+                {
+                    ClientCredentialType = HttpClientCredentialType.Certificate
+                }
+            }
+            };
 
+            var endpoint = new EndpointAddress(endpointUrl);
             _nfseClient = new nfseClient(binding, endpoint);
 
-            // 🔹 Carrega o certificado digital
-            var cert = LoadCertificate("c:\\dados\\eudmarco2.pfx", "luis1955");
+            // ### Aqui buscamos o Certificado do Cliente via serviço ###
+            _nfseClient.ClientCredentials.ClientCertificate.Certificate = certificateService.GetCertificate();
 
-            // 🔹 Valida a expiração do certificado antes de usá-lo
-            if (!IsCertificateValid(cert))
-            {
-                throw new Exception($"O certificado digital expirou em {cert.NotAfter}. Atualize o certificado antes de continuar.");
-            }
-
-            _nfseClient.ClientCredentials.ClientCertificate.Certificate = cert;
-           
         }
 
         [HttpPost]
@@ -53,7 +56,7 @@ namespace XmlApiNfseGiss.Controllers
                 var xmlAssinado = _nfseService.ConverterParaXml(request);
 
                 var response = await _nfseClient.RecepcionarLoteRpsAsync(cabecalhoXml, xmlAssinado);
-              
+
 
                 return Ok(new { mensagem = "NFSe enviada com sucesso!", response.outputXML });
             }
@@ -115,16 +118,5 @@ namespace XmlApiNfseGiss.Controllers
                 return BadRequest(new { erro = ex.Message });
             }
         }
-
-        // Método para validar a expiração do certificado
-        private bool IsCertificateValid(X509Certificate2 cert)
-        {
-            return cert != null && DateTime.Now < cert.NotAfter;
-        }
-
-        private X509Certificate2 LoadCertificate(string path, string password)
-        {
-            return new X509Certificate2(path, password, X509KeyStorageFlags.MachineKeySet);
-        }
     }
-}   
+}

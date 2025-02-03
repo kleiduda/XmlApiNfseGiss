@@ -6,6 +6,7 @@ using System.Xml;
 using XmlApiNfseGissApiBusiness.Interfaces;
 using XmlApiNfseGissApplication.Models;
 using XmlApiNfseGissApplication.Models.Cancelamento;
+using XmlApiNfseGissBusiness.Interfaces;
 
 namespace XmlApiNfseGissBusiness.Services
 {
@@ -14,8 +15,13 @@ namespace XmlApiNfseGissBusiness.Services
         private const string NamespaceGissTipos = "http://www.giss.com.br/tipos-v2_04.xsd";
         private const string NamespaceGissEnvio = "http://www.giss.com.br/enviar-lote-rps-envio-v2_04.xsd";
         private const string NamespaceXmlDsig = "http://www.w3.org/2000/09/xmldsig#";
-        
 
+        private readonly ICertificateService _certificateService;
+
+        public NfseService(ICertificateService certificateService)
+        {
+            _certificateService = certificateService;
+        }
         public string ConverterParaXml(NfseRequest request)
         {
             if (request == null)
@@ -72,11 +78,10 @@ namespace XmlApiNfseGissBusiness.Services
             Console.WriteLine("XML antes da assinatura:");
             Console.WriteLine(xmlDoc.OuterXml);
 
-            // Carregar Certificado
-            X509Certificate2 certificado = CarregarCertificado("c:\\dados\\certificado3.pfx", "luis1955");
+            
 
             // Assinar <ns2:InfDeclaracaoPrestacaoServico>
-            XmlElement assinatura = AssinarXml(xmlDoc, infDeclaracao, certificado);
+            XmlElement assinatura = AssinarXml(xmlDoc, infDeclaracao);
 
             // Adicionar a assinatura gerada dentro de <ns2:Rps>
             rpsElement.AppendChild(xmlDoc.ImportNode(assinatura, true));
@@ -85,7 +90,7 @@ namespace XmlApiNfseGissBusiness.Services
             Console.WriteLine(xmlDoc.OuterXml);
 
             // Assinar <ns4:LoteRps>
-            XmlElement assinaturaLoteRps = AssinarXml(xmlDoc, loteRps, certificado);
+            XmlElement assinaturaLoteRps = AssinarXml(xmlDoc, loteRps);
 
             // 🔹 Adicionar a assinatura **APÓS** <ns4:LoteRps> e não dentro
             enviarLoteRpsEnvio.InsertAfter(xmlDoc.ImportNode(assinaturaLoteRps, true), loteRps);
@@ -136,11 +141,8 @@ namespace XmlApiNfseGissBusiness.Services
             rootElement.AppendChild(protocoloElement);
 
             //Assinar XML
-            // Carregar Certificado
-            X509Certificate2 certificado = CarregarCertificado("c:\\dados\\certificado3.pfx", "luis1955");
-
             // Assinar <ns2:InfDeclaracaoPrestacaoServico>
-            XmlElement assinatura = AssinarXmlConsulta(xmlDoc, rootElement, certificado);
+            XmlElement assinatura = AssinarXmlConsulta(xmlDoc, rootElement);
 
             // Adicionar a assinatura gerada dentro de <ns2:Rps>
             rootElement.AppendChild(xmlDoc.ImportNode(assinatura, true));
@@ -215,17 +217,11 @@ namespace XmlApiNfseGissBusiness.Services
             rootElement.AppendChild(pedidoElement);
 
             //Assinar XML
-            // Carregar Certificado
-            X509Certificate2 certificado = CarregarCertificado("c:\\dados\\certificado3.pfx", "luis1955");
-
             // Assinar <tip:InfPedidoCancelamento>
-            XmlElement assinatura = AssinarXml(xmlDoc, infPedidoCancelamentoElement, certificado);
+            XmlElement assinatura = AssinarXml(xmlDoc, infPedidoCancelamentoElement);
 
             // Adicionar a assinatura gerada após o <tip:InfPedidoCancelamento> e antes do próximo elemento (se houver) dentro de <can:Pedido>
-            //XmlNode pedidoElement = infPedidoCancelamentoElement.ParentNode;  // Obtém o nó pai, que é <can:Pedido>
             pedidoElement.InsertAfter(xmlDoc.ImportNode(assinatura, true), infPedidoCancelamentoElement);
-
-
 
             // Retornar o XML gerado
             return xmlDoc.OuterXml;
@@ -304,10 +300,10 @@ namespace XmlApiNfseGissBusiness.Services
             return infDeclaracao;
         }
 
-        public XmlElement AssinarXml(XmlDocument xmlDoc, XmlElement elementoAssinar, X509Certificate2 certificado)
+        public XmlElement AssinarXml(XmlDocument xmlDoc, XmlElement elementoAssinar)
         {
-            Console.WriteLine("XML chegando em AssinarXml:");
-            Console.WriteLine(xmlDoc.OuterXml);
+            // Carregar Certificado
+            var certificado = _certificateService.GetCertificate();
 
             if (!elementoAssinar.HasAttribute("Id"))
             {
@@ -341,10 +337,10 @@ namespace XmlApiNfseGissBusiness.Services
             return signedXml.GetXml();
         }
 
-        public XmlElement AssinarXmlConsulta(XmlDocument xmlDoc, XmlElement elementoAssinar, X509Certificate2 certificado)
+        public XmlElement AssinarXmlConsulta(XmlDocument xmlDoc, XmlElement elementoAssinar)
         {
-            Console.WriteLine("XML chegando em AssinarXml:");
-            Console.WriteLine(xmlDoc.OuterXml);
+            // Carregar Certificado
+            var certificado = _certificateService.GetCertificate();
 
             // Verificando se o elemento não possui atributo 'Id', pois não será necessário
             if (elementoAssinar == null)
@@ -378,22 +374,12 @@ namespace XmlApiNfseGissBusiness.Services
             return signedXml.GetXml();
         }
 
-
-        public X509Certificate2 CarregarCertificado(string caminhoCertificado, string senha)
-        {
-            if (!File.Exists(caminhoCertificado))
-                throw new FileNotFoundException("Certificado não encontrado", caminhoCertificado);
-
-            return new X509Certificate2(caminhoCertificado, senha, X509KeyStorageFlags.MachineKeySet);
-        }
-
         private void AdicionarElementoComNamespace(XmlDocument doc, XmlElement parent, string prefixo, string nome, string valor, string ns)
         {
             var elemento = doc.CreateElement(prefixo, nome, ns);
             elemento.InnerText = valor;
             parent.AppendChild(elemento);
         }
-
-        
+ 
     }
 }
